@@ -1,8 +1,10 @@
 # This is a version of the main.py file found in ../../../server/main.py for testing the plugin locally.
 # Use the command `poetry run dev` to run this.
+import os
 from typing import Optional
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, Body, UploadFile
+from fastapi.staticfiles import StaticFiles
 
 from models.api import (
     DeleteRequest,
@@ -22,8 +24,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
+app.mount("/local-server", StaticFiles(directory="local-server"), name="static")
 
 PORT = 3333
+
+sub_app = FastAPI(
+    title="Retrieval Plugin API",
+    description="A retrieval API for querying and filtering documents based on natural language queries and metadata",
+    version="1.0.0",
+    servers=[{f"url": "localhost:{PORT}"}]
+)
+app.mount("/sub", sub_app)
 
 origins = [
     f"http://localhost:{PORT}",
@@ -88,6 +99,23 @@ async def upsert_file(
     "/upsert",
     response_model=UpsertResponse,
 )
+async def upsert_main(
+    request: UpsertRequest = Body(...),
+):
+    try:
+        ids = await datastore.upsert(request.documents)
+        return UpsertResponse(ids=ids)
+    except Exception as e:
+        print("Error:", e)
+        raise HTTPException(status_code=500, detail="Internal Service Error")
+
+
+@sub_app.post(
+    "/upsert",
+    response_model=UpsertResponse,
+    # NOTE: We are describing the shape of the API endpoint input due to a current limitation in parsing arrays of objects from OpenAPI schemas. This will not be necessary in the future.
+    description="Save chat information. Accepts an array of documents with text (potential questions + conversation text), metadata (source 'chat' and timestamp, no ID as this will be generated). Confirm with the user before saving, ask for more details/context.",
+)
 async def upsert(
     request: UpsertRequest = Body(...),
 ):
@@ -99,8 +127,32 @@ async def upsert(
         raise HTTPException(status_code=500, detail="Internal Service Error")
 
 
-@app.post("/query", response_model=QueryResponse)
-async def query_main(request: QueryRequest = Body(...)):
+@app.post(
+    "/query",
+    response_model=QueryResponse,
+)
+async def query_main(
+    request: QueryRequest = Body(...)
+):
+    try:
+        results = await datastore.query(
+            request.queries,
+        )
+        return QueryResponse(results=results)
+    except Exception as e:
+        print("Error:", e)
+        raise HTTPException(status_code=500, detail="Internal Service Error")
+
+
+@sub_app.post(
+    "/query",
+    response_model=QueryResponse,
+    # NOTE: We are describing the shape of the API endpoint input due to a current limitation in parsing arrays of objects from OpenAPI schemas. This will not be necessary in the future.
+    description="Accepts search query objects array each with query and optional filter. Break down complex questions into sub-questions. Refine results by criteria, e.g. time / source, don't do this often. Split queries if ResponseTooLargeError occurs.",
+)
+async def query(
+    request: QueryRequest = Body(...),
+):
     try:
         results = await datastore.query(
             request.queries,
