@@ -9,10 +9,10 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://retrieval-plugin.fly.dev/.well-known/openapi.yaml",
+    "url": "https://damp-dream-9154.fly.dev/.well-known/openapi.yaml",
     "has_user_authentication": false
   },
-  "logo_url": "https://retrieval-plugin.fly.dev/.well-known/logo.png",
+  "logo_url": "https://damp-dream-9154.fly.dev/.well-known/logo.png",
   "contact_email": "hello@contact.com", 
   "legal_info_url": "http://example.com/legal-info"
 }

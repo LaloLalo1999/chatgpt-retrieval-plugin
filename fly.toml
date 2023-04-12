@@ -1,0 +1,26 @@
+# fly.toml file generated for damp-dream-9154 on 2023-04-11T20:21:25-06:00
+
+app = "damp-dream-9154"
+kill_signal = "SIGINT"
+kill_timeout = 5
+mounts = []
+primary_region = "qro"
+processes = []
+
+[[services]]
+  internal_port = 8080
+  processes = ["app"]
+  protocol = "tcp"
+  [services.concurrency]
+    hard_limit = 25
+    soft_limit = 20
+    type = "connections"
+
+  [[services.ports]]
+    force_https = true
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
